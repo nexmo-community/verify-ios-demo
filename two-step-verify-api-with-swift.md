@@ -7,11 +7,10 @@ While there are multiple modes of authenticating as with something you know, are
 In this tutorial we explain to implement Two Factor Authentication with Nexmo's Verify API endpoint. 
 
 The app will need to do a few things:
- - Make a network call to three endpoints: 
- - start a verification, 
- - check a verification code, and 
- - cancel a verification request
- - store a `request_id` as a `responseId` so that a verification request can be cancelled or completed.
+ - Make a network call to three endpoints: Start a verification, check a verification code, and cancel a verification request
+ - Store a `request_id` as a `responseId` so that a verification request can be cancelled or completed.
+
+ HTTP body 
 
 ## Nexmo Setup
 You need to setup an account with Nexmo. You can start the sign up here: https://dashboard.nexmo.com/sign-up
@@ -94,7 +93,7 @@ With the Glitch server setup, the next step is to program the app's UI to reques
         //Sending SMS
         let param = ["telephoneNumber": telephoneTextField.text]
         
-        Alamofire.request("https://nexmo-verify.glitch.me/request", parameters: param as Any).responseJSON { response in
+        Alamofire.request("https://nexmo-verify.glitch.me/request", parameters: param).responseJSON { response in
             
             print("--- Sent SMS API ----")
             print("Response: \(response)")
@@ -102,93 +101,58 @@ With the Glitch server setup, the next step is to program the app's UI to reques
             if let json = response.result.value as? [String:AnyObject] {
                 
                 self.responseId = json["request_id"] as! String
-                self.performSegue(withIdentifier: "authenticateWith2FA", sender: self)
             }
         }
     }
 ```
 
-When the verification request is sent, our next step is to segue form the one view controller to the next. During the transition we will pass our `responseId` so that our Glitch server knows with which app it is dealing. Here is how to program `prepare(for:sender:)`: 
+With the code setup our first call to the server is a post request. 
 
-```Swift 
+After the call is made, we analyze the response data to parse out the response request. We save the parsed value of `json["request_id"]` as a `String` value in our `responseId`. 
 
-        override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        let confirmationVC = segue.destination as! ConfirmationViewController
-        confirmationVC.responseId = responseId
-     }
-```
+Inside of the body of the function we program the parameters to request the `responseId` so that we can continue to communicate with the API through the Glitch server.
 
-As we pass the `responseId` from one view controller to the next, we land on the `ConfirmationViewController` where we confirm whether the user requesting authentication has the device associated with his / her number.
 
 ### Second Link : SMS 
 
 1. In the `@IBAction` for `verifyPin` add the following line: `self.verifyPinViaAPI()`, which is a function we will program to hit the second link. 
 2. Create a function called `verifyPinViaAPI()` with the following code: 
 
-```Swift 
-    func verifyPinViaAPI() {
+```Swift
+func verifyPinViaAPI() {
+        let param = [
+            "request_id": self.responseId,
+            "code": pinCode]
         
-        guard let requestId = requestId,
-                let code = codeTextField.text else { return }
-        
-        let url = "https://nexmo-verify.glitch.me/check"
-        let parameters = ["request_id": requestId,
-                          "code": code]
-        
-        guard let request = URLRequestManager.getRequest(url, parameters: parameters) else { return }
-        
-        Alamofire.request(request).responseJSON { [weak self] response in
-
+        Alamofire.request("https://nexmo-verify.glitch.me/check", parameters: param).responseJSON { response in
+            
             print("--- Verify SMS API ----")
             print("Response: \(response)")
             
-            if let json = response.result.value as? [String:AnyObject],
-                let status = json["status"] as? String {
+            if let json = response.result.value as? [String:AnyObject] {
+                print(json)
                 
-                // if status is zero, then success; if not something
-                // went wrong
-                if Int(status) == 0 {
-                    DispatchQueue.main.async {
-                        self?.dismiss(animated: true)
-                        
-                    }
+                var status = Int()
+                status = Int(json["status"] as! String)!
+                print(status)
+                
+                if status == 0 {
+                    self.performSegue(withIdentifier: "authenticateWith2FA", sender: nil)
+                    
+                    
                 }
+                
             }
+            
         }
     }
 ```
+The code is similiar to the first request. In this code snippet we parse the response for a successful verification. If the status returned in the response is zero, we present the user with his or her notes. If not, then the user must start all over again. 
 
-The code is similiar to the first request. In this code snippet we parse the response for a successful verification. If the status returned in the response is zero, the user is authenticated. If not, then the user must start all over again. 
+### Testing 
 
-### Cancellation 
+The user inputs his or her telephone number into the text field, pressing the button to verify. If all goes well, the user receives a text message on their phone; the text message contains the pin. The user inputs the pin into the text field, pressing the button to verify the pin. If the verification is successful, the users' notes appear.
 
-Last but not least is cancellation. Cancellation is programmed in an similar manner: 
-
-```Swift
-    func cancelRequest() {
-
-        guard let requestId = requestId else { return }
-
-        let parameters = ["request_id": requestId]
-        let url = "https://nexmo-verify.glitch.me/cancel"
-        
-        guard let request = URLRequestManager.getRequest(url, parameters: parameters) else { return }
-
-        Alamofire.request(request).responseJSON { response in
-
-            print("--- Cancel Request API ----")
-            print("Response: \(response)")
-
-            if let json = response.result.value as? [String:AnyObject],
-                let status = json["status"] as? String {
-                
-                if Int(status) == 0 {
-                    print("Request Cancelled Successfully")
-                }
-            }
-        }
-    }
-```
 
 # Conclusion - What's been achieved and learned?
 
@@ -196,7 +160,7 @@ You now have a verified number & double checked that your user is in possession 
 
 With this implementation you only know from the client side that the number is verified. In a real world app, you would need to tell your backend that the number is verified. You could accomplish that in two ways. Either calling that update on the success flow from the client. Or your own callbacks.
 
-If you struggled with any aspect of the code, then you can download the completed project [here](https://github.com/ericgiannini/com.nexmo.nexmo-verify-ios-demo/tree/final).
+If you struggled with any aspect of the code, then you can download the completed project [here](https://www.dropbox.com/s/b0x9hcun7b0021p/memo%202.zip?dl=0).
 
 > Much of the code is not programmed defensively to prevent bugs. Imagine, for instance, a user who forgets to enter his or her area code in the `inputTextField` but presses the `Verify` button anyway. Imagine the user presses the button without any text at all in the label, let alone numbers. How would you program this button defensively? How would you program the other button defensively? 
 

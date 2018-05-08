@@ -7,8 +7,12 @@
 //
 
 import UIKit
+import Alamofire
 
 class ConfirmationViewController: UIViewController {
+    
+    var responseId = String()
+    var pinCode = String()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -21,15 +25,36 @@ class ConfirmationViewController: UIViewController {
         // Dispose of any resources that can be recreated.
     }
     
+    
+    func verifyPinViaAPI() {
+        
+        guard let requestId = requestId,
+            let code = codeTextField.text else { return }
+        
+        let url = "https://nexmo-verify.glitch.me/check"
+        let parameters = ["request_id": requestId,
+                          "code": code]
+        
+        guard let request = URLRequestManager.getRequest(url, parameters: parameters) else { return }
+        
+        Alamofire.request(request).responseJSON { [weak self] response in
+            
+            print("--- Verify SMS API ----")
+            print("Response: \(response)")
+            
+            if let json = response.result.value as? [String:AnyObject],
+                let status = json["status"] as? String {
+                
+                // if status is zero, then success; if not something
+                // went wrong
+                if Int(status) == 0 {
+                    DispatchQueue.main.async {
+                        self?.dismiss(animated: true)
+                        
+                    }
+                }
+            }
+        }s
 
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destinationViewController.
-        // Pass the selected object to the new view controller.
-    }
-    */
 
 }

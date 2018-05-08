@@ -43,17 +43,26 @@
                                 <rect key="frame" x="16" y="134" width="343" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="sign in"/>
+                                <connections>
+                                    <action selector="loginBtn:" destination="BYZ-38-t0r" eventType="touchUpInside" id="gwF-eF-Ec1"/>
+                                </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="x2E-ko-NYL">
                                 <rect key="frame" x="16" y="172" width="343" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="cancel request"/>
+                                <connections>
+                                    <action selector="cancelBtn:" destination="BYZ-38-t0r" eventType="touchUpInside" id="75b-gA-7RH"/>
+                                </connections>
                             </button>
                         </subviews>
                         <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                     </view>
                     <connections>
+                        <outlet property="emailTextField" destination="lhY-lh-sfP" id="DyB-Tb-ZgJ"/>
+                        <outlet property="passwordTextField" destination="37a-TL-Bg4" id="YUx-wf-cma"/>
+                        <outlet property="telephoneTextField" destination="uPN-be-flS" id="m2R-kf-3Sm"/>
                         <segue destination="cj4-rU-X2Z" kind="show" identifier="authenticateWith2FACode" id="CmU-FV-79a"/>
                     </connections>
                 </viewController>

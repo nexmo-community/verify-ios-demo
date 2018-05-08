@@ -27,6 +27,7 @@ class VerificationViewController: UIViewController {
     }
 
     @IBAction func cancelBtn(_ sender: Any) {
+        self.cancelBtn()
     }
     
 
@@ -44,40 +45,50 @@ class VerificationViewController: UIViewController {
     
     func requestVerificationWithAPI()
     {
-        //Sending SMS
-        let param = ["telephoneNumber": telephoneTextField.text]
+        guard let number = telephoneTextField.text else { return }
         
-        Alamofire.request("https://nexmo-verify.glitch.me/request", parameters: param as Any).responseJSON { response in
+        //Sending SMS
+        let parameters = ["number": number]
+        let url = "https://nexmo-verify.glitch.me/request"
+        
+        guard let request = URLRequestManager.getRequest(url, parameters: parameters) else { return }
+        
+        Alamofire.request(request).responseJSON { [weak self] response in
             
             print("--- Sent SMS API ----")
             print("Response: \(response)")
             
             if let json = response.result.value as? [String:AnyObject] {
                 
-                self.responseId = json["request_id"] as! String
-                self.performSegue(withIdentifier: "authenticateWith2FA", sender: self)
+                guard let requestId = json["request_id"] as? String else { return }
+                
+                self?.performSegue(withIdentifier: "AuthenticateWith2FA", sender: requestId)
             }
         }
     }
     
     func cancelRequest() {
         
-        //Sending SMS
-        let param = ["response_id": responseId]
+        guard let requestId = requestId else { return }
         
-        Alamofire.request("https://nexmo-verify.glitch.me/request", parameters: param as Any).responseJSON { response in
+        let parameters = ["request_id": requestId]
+        let url = "https://nexmo-verify.glitch.me/cancel"
+        
+        guard let request = URLRequestManager.getRequest(url, parameters: parameters) else { return }
+        
+        Alamofire.request(request).responseJSON { response in
             
-            print("--- Sent SMS API ----")
+            print("--- Cancel Request API ----")
             print("Response: \(response)")
             
-            if let json = response.result.value as? [String:AnyObject] {
+            if let json = response.result.value as? [String:AnyObject],
+                let status = json["status"] as? String {
                 
-                self.responseId = json["request_id"] as! String
-                self.performSegue(withIdentifier: "authenticateWith2FA", sender: self)
+                if Int(status) == 0 {
+                    print("Request Cancelled Successfully")
+                }
             }
         }
-        
-        
     }
     
         override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
